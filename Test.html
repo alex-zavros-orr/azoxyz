@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Personal Portal</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa7bf; --accent:#60a5fa; --glass: rgba(255,255,255,0.04);
+      --radius:12px; --glass-2: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial; background:linear-gradient(180deg,#071025 0%, #071733 60%); color:#e6eef8}
+    .app{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+
+    /* Grid */
+    .grid{display:grid;grid-template-columns: 1fr 360px;gap:18px}
+    .column{background:linear-gradient(180deg,var(--card),#041123);padding:16px;border-radius:var(--radius);box-shadow:0 6px 24px rgba(3,7,18,0.7)}
+
+    /* Quick links */
+    .links{display:flex;flex-wrap:wrap;gap:10px}
+    .link{background:var(--glass);padding:10px 12px;border-radius:10px;min-width:120px;display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+    .link svg{width:20px;height:20px;opacity:0.95}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* Controls */
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:9px;color:inherit;cursor:pointer}
+    input[type=text], textarea, select{background:var(--glass-2);border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px;color:inherit;width:100%}
+
+    /* Cards */
+    .card{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.03);margin-bottom:12px}
+
+    /* Bookmarks table */
+    .bm-list{display:flex;flex-direction:column;gap:8px}
+    .bm-item{display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;background:rgba(0,0,0,0.12)}
+    .bm-meta{display:flex;align-items:center;gap:10px}
+    .tag{background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
+
+    /* Right column widgets */
+    .widget{margin-bottom:12px}
+    .tiny{font-size:12px;color:var(--muted)}
+
+    footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+
+    /* modal login */
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.8));z-index:30}
+    .login{width:420px;padding:18px;border-radius:14px;background:linear-gradient(180deg,#07182a,#001427);box-shadow:0 8px 60px rgba(2,6,23,0.8);border:1px solid rgba(255,255,255,0.03)}
+    .login h2{margin:0 0 6px 0}
+
+    /* mobile */
+    @media (max-width:900px){.grid{grid-template-columns:1fr;}.app{padding:14px;margin:12px}}
+
+    /* subtle focus */
+    :focus{outline:2px solid rgba(96,165,250,0.14);outline-offset:2px}
+
+    /* empty states */
+    .muted-center{text-align:center;color:var(--muted);padding:18px;border-radius:10px;background:linear-gradient(180deg,transparent, rgba(255,255,255,0.01))}
+
+    /* small helpers */
+    .row{display:flex;gap:8px;align-items:center}
+    .stretch{flex:1}
+
+  </style>
+</head>
+<body>
+  <div class="app" id="app" aria-live="polite">
+    <header>
+      <div>
+        <h1>My Personal Portal</h1>
+        <div class="sub">Your private single-user dashboard — stored locally on this device</div>
+      </div>
+      <div class="controls">
+        <button id="addBookmarkBtn" title="Add bookmark">➕ Add</button>
+        <button id="backupBtn" title="Export data">⬇️ Backup</button>
+        <button id="importBtn" title="Import data">⬆️ Import</button>
+        <button id="lockBtn" title="Lock portal">🔒 Lock</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main class="column">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:600">Search</div>
+              <div class="tiny">Search bookmarks or the web</div>
+            </div>
+            <div style="width:55%">
+              <input id="globalSearch" type="text" placeholder="Type to search bookmarks or press Enter to search the web (press / to focus)" />
+            </div>
+          </div>
+        </div>
+
+        <section class="card">
+          <h3 style="margin:0 0 8px 0">Quick Links</h3>
+          <div class="links" id="quickLinks"></div>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h3 style="margin:0">Bookmarks</h3>
+            <div class="small">Organize by tags — click a tag to filter</div>
+          </div>
+
+          <div id="bookmarks" class="bm-list" style="margin-top:10px"></div>
+          <div id="emptyBM" class="muted-center" style="display:none">No bookmarks yet — click Add to create your first one.</div>
+        </section>
+
+        <section class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="margin:0">Notes</h3>
+            <div class="tiny">Autosaved to your browser</div>
+          </div>
+          <textarea id="notes" rows="6" placeholder="Personal notes, to-dos, lyrics, configs..." style="margin-top:8px"></textarea>
+        </section>
+
+      </main>
+
+      <aside class="column">
+        <div class="widget card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:600">Today</div>
+              <div class="tiny">Local time</div>
+            </div>
+            <div id="clock" style="font-weight:700;font-size:18px"></div>
+          </div>
+        </div>
+
+        <div class="widget card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:600">To‑do</div>
+            <div class="tiny">Quick list</div>
+          </div>
+          <div id="todoList"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="todoInput" type="text" placeholder="Add task and press Enter" />
+          </div>
+        </div>
+
+        <div class="widget card">
+          <div style="font-weight:600">Settings</div>
+          <div class="tiny" style="margin-top:8px">Configure your portal</div>
+          <div style="margin-top:8px">
+            <label class="row" style="justify-content:space-between"><span class="small">Theme</span>
+              <select id="themeSelect"><option value="auto">Auto</option><option value="dark">Dark</option><option value="light">Light</option></select></label>
+            <div style="height:8px"></div>
+            <label class="row" style="justify-content:space-between"><span class="small">Show favicons</span><input id="favToggle" type="checkbox" checked /></label>
+          </div>
+        </div>
+
+        <div class="widget card">
+          <div style="font-weight:600">Useful Links</div>
+          <div class="tiny" style="margin-top:6px">Quick access</div>
+          <div style="margin-top:8px" id="usefulLinks"></div>
+        </div>
+
+      </aside>
+    </div>
+
+    <footer>Tip: press <strong>/</strong> to focus search • Data stays on this device only (localStorage)</footer>
+  </div>
+
+  <!-- Login / setup modal -->
+  <div id="overlay" class="overlay" style="display:none">
+    <div class="login">
+      <h2 id="loginTitle">Unlock your portal</h2>
+      <div class="small" id="loginSub">This site stores everything locally in your browser. Set a password on first use.</div>
+      <div style="height:12px"></div>
+      <label class="small">Password</label>
+      <input id="pwInput" type="password" />
+      <div style="height:10px"></div>
+      <div class="row" style="justify-content:flex-end">
+        <button id="pwAction">Unlock</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="tiny" style="color:var(--muted)">Your password is never sent anywhere — it's hashed locally and the hash is kept in localStorage. If you forget it, you can import a backup file with your data (or reset the portal).</div>
+    </div>
+  </div>
+
+  <script>
+  // ---------- Basic data model & persistence ----------
+  const STORAGE_KEY = 'personalPortal.v1';
+  const HASH_KEY = 'personalPortal.hash';
+
+  const defaults = {
+    bookmarks: [],
+    quick: [],
+    notes: '',
+    todos: [],
+    settings: { showFav:true, theme:'auto' }
+  };
+
+  let state = loadState();
+  let isUnlocked = false;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : structuredClone(defaults);
+    }catch(e){console.error(e); return structuredClone(defaults)}
+  }
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  // ---------- Crypto helpers (SHA-256) ----------
+  async function hashText(str){
+    const enc = new TextEncoder();
+    const data = enc.encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // ---------- Auth flow ----------
+  const overlay = document.getElementById('overlay');
+  const pwInput = document.getElementById('pwInput');
+  const pwAction = document.getElementById('pwAction');
+  const loginTitle = document.getElementById('loginTitle');
+
+  async function showLock(){
+    overlay.style.display='flex';
+    pwInput.value='';
+    pwInput.focus();
+  }
+  async function lockPortal(){ isUnlocked=false; showLock(); }
+
+  async function attemptUnlock(){
+    const stored = localStorage.getItem(HASH_KEY);
+    const pw = pwInput.value || '';
+    if(!stored){
+      // first time setup
+      if(!pw || pw.length < 4){ alert('Choose a password (min 4 chars)'); return; }
+      const h = await hashText(pw);
+      localStorage.setItem(HASH_KEY,h);
+      isUnlocked=true; overlay.style.display='none'; render();
+      return;
+    }
+    const h = await hashText(pw);
+    if(h === stored){ isUnlocked=true; overlay.style.display='none'; render(); }
+    else { alert('Wrong password'); }
+  }
+
+  pwAction.addEventListener('click', attemptUnlock);
+  pwInput.addEventListener('keydown', e=>{ if(e.key==='Enter') attemptUnlock(); });
+
+  // ---------- UI rendering ----------
+  const quickLinksEl = document.getElementById('quickLinks');
+  const bookmarksEl = document.getElementById('bookmarks');
+  const emptyBM = document.getElementById('emptyBM');
+  const notesEl = document.getElementById('notes');
+  const clockEl = document.getElementById('clock');
+  const todoListEl = document.getElementById('todoList');
+  const todoInput = document.getElementById('todoInput');
+  const usefulLinksEl = document.getElementById('usefulLinks');
+
+  function render(){
+    if(!isUnlocked){ document.getElementById('app').style.filter='blur(2px)'; return; } else document.getElementById('app').style.filter='none';
+
+    // Quick links
+    quickLinksEl.innerHTML='';
+    const quick = state.quick.length ? state.quick : [
+      {title:'Gmail',url:'https://mail.google.com'},
+      {title:'GitHub',url:'https://github.com'},
+      {title:'Drive',url:'https://drive.google.com'}
+    ];
+    quick.forEach(b=>{
+      const a=document.createElement('a'); a.className='link'; a.href='#'; a.onclick=(ev)=>{ev.preventDefault(); window.open(b.url,'_blank')}
+      a.innerHTML=iconFor(b.title)+`<div><div style="font-weight:600">${escapeHtml(b.title)}</div><div class="small">${b.url}</div></div>`
+      quickLinksEl.appendChild(a);
+    });
+
+    // Bookmarks
+    bookmarksEl.innerHTML='';
+    if(state.bookmarks.length===0) emptyBM.style.display='block'; else emptyBM.style.display='none';
+    state.bookmarks.forEach((bm,idx)=>{
+      const d=document.createElement('div'); d.className='bm-item';
+      const left=document.createElement('div'); left.className='bm-meta';
+      left.innerHTML = (state.settings.showFav ? (faviconImg(bm.url)) : '') + `<div><div style="font-weight:600">${escapeHtml(bm.title)}</div><div class='small'>${escapeHtml(bm.url)}</div></div>`
+      const right=document.createElement('div');
+      right.innerHTML = `<span class='tag' title='tags'>${escapeHtml((bm.tags||[]).join(', ')||'untagged')}</span>` +
+        ` <button data-idx='${idx}' class='editBtn'>✏️</button> <button data-idx='${idx}' class='delBtn'>🗑️</button>`;
+      d.appendChild(left); d.appendChild(right);
+      bookmarksEl.appendChild(d);
+    });
+
+    // Notes
+    notesEl.value = state.notes || '';
+
+    // Todos
+    renderTodos();
+
+    // Useful links
+    usefulLinksEl.innerHTML='';
+    const defaultUseful = [
+      {t:'Localhost',u:'http://127.0.0.1:8000'},
+      {t:'Router',u:'http://192.168.0.1'}
+    ];
+    (state.useful||defaultUseful).forEach(x=>{
+      const a=document.createElement('a'); a.href='#'; a.className='link'; a.style.minWidth='auto'; a.onclick=(e)=>{e.preventDefault(); window.open(x.u,'_blank')};
+      a.innerHTML = `<div style='font-weight:600'>${escapeHtml(x.t)}</div>`;
+      usefulLinksEl.appendChild(a);
+    })
+  }
+
+  // helpers
+  function faviconImg(url){ try{ const u=new URL(url); return `<img src="https://www.google.com/s2/favicons?domain=${u.hostname}" style="width:20px;height:20px;border-radius:4px;margin-right:6px;object-fit:contain"/>`; }catch(e){return ''} }
+  function iconFor(title){ return `<div style='width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#04243b,#073a4e);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;margin-right:8px'>${escapeHtml(title[0]||'•')}</div>` }
+  function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+
+  // ---------- Bookmarks add/edit/delete UI ----------
+  document.getElementById('addBookmarkBtn').addEventListener('click', ()=>{ openBookmarkEditor(); });
+
+  function openBookmarkEditor(editIdx=null){
+    const modal = document.createElement('div'); modal.className='overlay';
+    const box = document.createElement('div'); box.className='login'; box.style.width='520px';
+    box.innerHTML = `
+      <h2>${editIdx===null? 'Add bookmark' : 'Edit bookmark'}</h2>
+      <div class='small'>Keep titles short. Tags comma separated.</div>
+      <div style='height:10px'></div>
+      <label class='small'>Title</label><input id='bmTitle' type='text' />
+      <div style='height:8px'></div>
+      <label class='small'>URL</label><input id='bmUrl' type='text' />
+      <div style='height:8px'></div>
+      <label class='small'>Tags</label><input id='bmTags' type='text' placeholder='e.g. work,bank' />
+      <div style='height:10px'></div>
+      <div class='row' style='justify-content:flex-end'><button id='saveBm'>Save</button><button id='cancelBm'>Cancel</button></div>
+    `;
+    modal.appendChild(box); document.body.appendChild(modal);
+    if(editIdx!==null){ const bm = state.bookmarks[editIdx]; box.querySelector('#bmTitle').value=bm.title; box.querySelector('#bmUrl').value=bm.url; box.querySelector('#bmTags').value=(bm.tags||[]).join(', ')}
+    box.querySelector('#cancelBm').addEventListener('click', ()=>{ document.body.removeChild(modal); });
+    box.querySelector('#saveBm').addEventListener('click', ()=>{
+      const title = box.querySelector('#bmTitle').value.trim(); const url = box.querySelector('#bmUrl').value.trim(); const tags = box.querySelector('#bmTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+      if(!title || !url){ alert('Provide title and URL'); return; }
+      const item = {title,url,tags};
+      if(editIdx===null) state.bookmarks.unshift(item); else state.bookmarks[editIdx]=item;
+      saveState(); render(); document.body.removeChild(modal);
+    });
+  }
+
+  // delegate edit / delete
+  document.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('editBtn')){
+      const idx = Number(e.target.dataset.idx); openBookmarkEditor(idx);
+    }
+    if(e.target.classList.contains('delBtn')){
+      const idx = Number(e.target.dataset.idx); if(confirm('Delete bookmark?')){ state.bookmarks.splice(idx,1); saveState(); render(); }
+    }
+  });
+
+  // ---------- Notes autosave ----------
+  let notesTimer;
+  notesEl.addEventListener('input', ()=>{ clearTimeout(notesTimer); notesTimer=setTimeout(()=>{ state.notes=notesEl.value; saveState(); },600); });
+
+  // ---------- Todos ----------
+  function renderTodos(){ todoListEl.innerHTML=''; if(!state.todos || state.todos.length===0) todoListEl.innerHTML='<div class="muted-center">No tasks</div>';
+    state.todos.forEach((t,i)=>{
+      const d=document.createElement('div'); d.className='row'; d.style.justifyContent='space-between'; d.style.marginBottom='6px';
+      d.innerHTML = `<div style='display:flex;gap:8px;align-items:center'><input type='checkbox' data-i='${i}' ${t.done? 'checked':''}/> <div>${escapeHtml(t.text)}</div></div> <div><button data-i='${i}' class='delTodo'>🗑️</button></div>`;
+      todoListEl.appendChild(d);
+    })
+  }
+  todoInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const v=todoInput.value.trim(); if(!v) return; state.todos.push({text:v,done:false}); todoInput.value=''; saveState(); renderTodos(); } });
+  document.addEventListener('change', e=>{ if(e.target.matches('input[type=checkbox]')){ const i=Number(e.target.dataset.i); state.todos[i].done = e.target.checked; saveState(); renderTodos(); } });
+  document.addEventListener('click', e=>{ if(e.target.classList.contains('delTodo')){ const i=Number(e.target.dataset.i); state.todos.splice(i,1); saveState(); renderTodos(); } });
+
+  // ---------- Backup & import ----------
+  document.getElementById('backupBtn').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='portal-backup.json'; a.click(); URL.revokeObjectURL(url);
+  });
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=(ev)=>{
+      const f = ev.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const j=JSON.parse(r.result); if(confirm('Overwrite current data with imported file?')){ state=j; saveState(); render(); alert('Imported'); }}catch(err){alert('Invalid file')} }; r.readAsText(f);
+    }; inp.click();
+  });
+
+  // ---------- Lock button ----------
+  document.getElementById('lockBtn').addEventListener('click', ()=>{ lockPortal(); });
+
+  // ---------- Search ----------
+  const globalSearch = document.getElementById('globalSearch');
+  globalSearch.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){
+      const q = globalSearch.value.trim();
+      if(!q) return;
+      // prioritize local bookmarks search
+      const results = state.bookmarks.filter(b => b.title.toLowerCase().includes(q.toLowerCase()) || b.url.toLowerCase().includes(q.toLowerCase()));
+      if(results.length>0){ alert('Found '+results.length+' bookmark(s)\n'+results.map(r=>r.title+' — '+r.url).join('\n')) }
+      else { window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); }
+    }
+  });
+  // keyboard shortcut '/'
+  document.addEventListener('keydown',(e)=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){ e.preventDefault(); globalSearch.focus(); } });
+
+  // ---------- Clock ----------
+  function updateClock(){ const d=new Date(); clockEl.textContent = d.toLocaleString(); }
+  setInterval(updateClock,1000); updateClock();
+
+  // ---------- Theme & settings ----------
+  const themeSelect = document.getElementById('themeSelect'); const favToggle=document.getElementById('favToggle');
+  themeSelect.value = state.settings.theme || 'auto'; favToggle.checked = state.settings.showFav;
+  themeSelect.addEventListener('change', ()=>{ state.settings.theme=themeSelect.value; saveState(); applyTheme(); });
+  favToggle.addEventListener('change', ()=>{ state.settings.showFav = favToggle.checked; saveState(); render(); });
+  function applyTheme(){ const t=state.settings.theme; if(t==='light'){ document.documentElement.style.setProperty('--bg','#f6f9fc'); document.documentElement.style.setProperty('--card','#ffffff'); document.documentElement.style.setProperty('--muted','#4b5563'); document.documentElement.style.setProperty('--accent','#2563eb'); document.body.style.color='#0b1220'} else { document.documentElement.style.removeProperty('--bg'); document.documentElement.style.removeProperty('--card'); document.documentElement.style.removeProperty('--muted'); document.documentElement.style.removeProperty('--accent'); document.body.style.color=''; }}
+
+  // ---------- Utilities ----------
+  function structuredClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  // ---------- Init ----------
+  render();
+  // show lock on load
+  setTimeout(()=>{ showLock(); }, 120);
+
+  // ---------- Small UX niceties: open bookmarks on double-click ----------
+  bookmarksEl.addEventListener('dblclick', (e)=>{
+    const target = e.target.closest('.bm-item'); if(!target) return;
+    const idx = Array.from(bookmarksEl.children).indexOf(target); const bm = state.bookmarks[idx]; if(bm) window.open(bm.url,'_blank');
+  });
+
+  // ---------- Export helper for debugging (console) ----------
+  window._portal = { state, saveState, loadState, lockPortal };
+  </script>
+</body>
+</html>
