@@ -3,103 +3,221 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Personal Portal (Phone Unlock)</title>
+<title>My Personal Portal</title>
 <style>
-  body {margin:0;font-family:Arial,sans-serif;background:#041d07;color:#e6eef8;}
-  #locked {position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#042107,#0a3c0b);z-index:50;text-align:center;padding:20px;}
-  #locked h1{font-size:28px;margin-bottom:10px;}
-  #locked p{margin:4px 0;}
-  #codeInput {padding:8px;border-radius:8px;border:none;width:120px;text-align:center;font-size:18px;margin-top:10px;}
-  button{padding:8px 12px;border-radius:8px;border:none;background:#38b000;color:#fff;cursor:pointer;margin-top:10px;font-weight:bold;}
-  #portal {display:none;padding:20px;max-width:900px;margin:auto;}
-  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-  header h1{margin:0;font-size:24px;}
-  .section{background:linear-gradient(135deg,#0a3c0b,#042107);padding:12px;border-radius:12px;margin-bottom:16px;}
-  input, textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.02);color:#e6eef8;}
-  .bookmark-list{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;}
-  .bookmark-item{background:rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;text-decoration:none;color:#e6eef8;}
+    /* ----- General Styles ----- */
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: #0a0a0a;
+        color: #fff;
+    }
+    h1, h2, h3 {
+        color: #00ff00;
+    }
+    a {
+        color: #00ff00;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+
+    /* ----- Login Screen ----- */
+    #loginScreen {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #003300, #006600);
+    }
+    #loginScreen input {
+        padding: 10px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+    }
+    #loginScreen button {
+        padding: 10px 20px;
+        margin-top: 10px;
+        background: #00ff00;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    #loginScreen button:hover {
+        background: #33ff33;
+    }
+
+    /* ----- Portal Layout ----- */
+    #portal {
+        display: none;
+        padding: 20px;
+    }
+    .flex-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .card {
+        background: #111;
+        border: 1px solid #00ff00;
+        border-radius: 10px;
+        padding: 15px;
+        flex: 1 1 300px;
+        min-height: 200px;
+        box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+
+    /* ----- Clock ----- */
+    #clock {
+        font-size: 1.5em;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    /* ----- Notes ----- */
+    #notes {
+        display: flex;
+        flex-direction: column;
+    }
+    #notes textarea {
+        width: 100%;
+        height: 150px;
+        background: #000;
+        color: #00ff00;
+        border: 1px solid #00ff00;
+        border-radius: 5px;
+        padding: 10px;
+        resize: none;
+        font-family: monospace;
+    }
+    #notes button {
+        margin-top: 10px;
+        background: #00ff00;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    #notes button:hover {
+        background: #33ff33;
+    }
+
+    /* ----- Google Maps ----- */
+    #map {
+        width: 100%;
+        height: 300px;
+        border-radius: 10px;
+        border: 1px solid #00ff00;
+    }
+
+    /* ----- Bookmarks ----- */
+    #bookmarks ul {
+        list-style: none;
+        padding: 0;
+    }
+    #bookmarks li {
+        padding: 5px 0;
+    }
+
 </style>
 </head>
 <body>
 
-<div id="locked">
-  <h1>Portal Locked</h1>
-  <p>Your one-time unlock code is:</p>
-  <p id="unlockCode" style="font-size:32px;font-weight:bold;letter-spacing:3px;"></p>
-  <p>Enter this code below to unlock:</p>
-  <input type="text" id="codeInput" placeholder="123456" maxlength="6">
-  <button id="unlockBtn">Unlock</button>
-  <p style="margin-top:12px;font-size:12px;color:#a8ffb0;">Keep this code safe. Refreshing will generate a new one.</p>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+    <h1>Welcome to My Portal</h1>
+    <input type="password" id="passwordInput" placeholder="Enter password">
+    <button onclick="login()">Login</button>
 </div>
 
+<!-- MAIN PORTAL -->
 <div id="portal">
-  <header>
-    <h1>My Personal Portal</h1>
-  </header>
+    <div id="clock"></div>
 
-  <div class="section">
-    <h3>Quick Add Bookmark</h3>
-    <input type="text" id="bmTitle" placeholder="Title">
-    <input type="text" id="bmURL" placeholder="URL">
-    <button id="addBM">Add Bookmark</button>
-    <div class="bookmark-list" id="bookmarkList"></div>
-  </div>
+    <div class="flex-container">
 
-  <div class="section">
-    <h3>Notes</h3>
-    <textarea id="notes" rows="6" placeholder="Your notes here..."></textarea>
-  </div>
+        <!-- Bookmarks -->
+        <div class="card" id="bookmarks">
+            <h2>Bookmarks</h2>
+            <ul>
+                <li><a href="https://www.google.com" target="_blank">Google</a></li>
+                <li><a href="https://www.youtube.com" target="_blank">YouTube</a></li>
+                <li><a href="https://www.reddit.com" target="_blank">Reddit</a></li>
+            </ul>
+        </div>
+
+        <!-- Notes -->
+        <div class="card" id="notes">
+            <h2>Notes</h2>
+            <textarea id="noteText" placeholder="Write your notes here..."></textarea>
+            <button onclick="saveNotes()">Save Notes</button>
+        </div>
+
+        <!-- Google Maps -->
+        <div class="card">
+            <h2>Map</h2>
+            <iframe id="map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3151.8354345093746!2d144.95373631531658!3d-37.81627917975147!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad65d5df1cbbf9f%3A0x5045675218ce7e0!2sMelbourne%20VIC%2C%20Australia!5e0!3m2!1sen!2sus!4v1699177927325!5m2!1sen!2sus" allowfullscreen="" loading="lazy"></iframe>
+        </div>
+
+        <!-- Extras: Quotes -->
+        <div class="card">
+            <h2>Random Quote</h2>
+            <div id="quote">Loading...</div>
+            <button onclick="newQuote()">New Quote</button>
+        </div>
+
+    </div>
 </div>
 
 <script>
-// --- Generate one-time unlock code ---
-let unlockCode = Math.floor(100000 + Math.random()*900000).toString();
-document.getElementById('unlockCode').textContent = unlockCode;
-
-// --- Unlock button ---
-document.getElementById('unlockBtn').addEventListener('click',()=>{
-    const entered = document.getElementById('codeInput').value.trim();
-    if(entered === unlockCode){
-        document.getElementById('locked').style.display='none';
-        document.getElementById('portal').style.display='block';
-    } else {
-        alert('Incorrect code!');
+    // ----- PASSWORD LOGIN -----
+    const PASSWORD = "weedportal123"; // change your password here
+    function login() {
+        const input = document.getElementById('passwordInput').value;
+        if(input === PASSWORD) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('portal').style.display = 'block';
+        } else {
+            alert("Wrong password!");
+        }
     }
-});
 
-// --- Bookmarks ---
-let bookmarks = JSON.parse(localStorage.getItem('bookmarks')||'[]');
-const bmList = document.getElementById('bookmarkList');
+    // ----- CLOCK -----
+    function updateClock() {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('clock').innerHTML = now.toLocaleDateString('en-US', options) + " " + now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
-function renderBookmarks() {
-    bmList.innerHTML = '';
-    bookmarks.forEach(bm => {
-        const a = document.createElement('a');
-        a.href = bm.url;
-        a.target='_blank';
-        a.className='bookmark-item';
-        a.textContent = bm.title;
-        bmList.appendChild(a);
-    });
-}
+    // ----- NOTES SAVE -----
+    function saveNotes() {
+        const text = document.getElementById('noteText').value;
+        localStorage.setItem('myPortalNotes', text);
+        alert("Notes saved!");
+    }
+    // Load saved notes
+    document.getElementById('noteText').value = localStorage.getItem('myPortalNotes') || "";
 
-document.getElementById('addBM').addEventListener('click',()=>{
-    const title = document.getElementById('bmTitle').value.trim();
-    const url = document.getElementById('bmURL').value.trim();
-    if(!title || !url) return alert('Enter title and URL');
-    bookmarks.push({title,url});
-    localStorage.setItem('bookmarks',JSON.stringify(bookmarks));
-    renderBookmarks();
-    document.getElementById('bmTitle').value='';
-    document.getElementById('bmURL').value='';
-});
-
-renderBookmarks();
-
-// --- Notes ---
-const notesEl = document.getElementById('notes');
-notesEl.value = localStorage.getItem('notes')||'';
-notesEl.addEventListener('input',()=>{localStorage.setItem('notes',notesEl.value);});
+    // ----- RANDOM QUOTES -----
+    const quotes = [
+        "Stay lifted, stay chill.",
+        "High vibes only.",
+        "Keep calm and smoke on.",
+        "Inhale the good shit, exhale the bullshit.",
+        "Life is better in green."
+    ];
+    function newQuote() {
+        const q = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('quote').innerText = q;
+    }
+    newQuote();
 </script>
 
 </body>
